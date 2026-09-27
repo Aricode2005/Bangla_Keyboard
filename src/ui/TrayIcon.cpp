@@ -14,6 +14,7 @@ enum MenuId : UINT {
     ID_FIXED,
     ID_LIVE_PREVIEW,
     ID_ONSCREEN_KB,
+    ID_EDIT_MACROS,
     ID_HELP,
     ID_EXIT
 };
@@ -256,6 +257,9 @@ void TrayIcon::showMenu() {
                 ID_LIVE_PREVIEW, L"Live preview\tCtrl+Shift+P");
     AppendMenuW(menu, MF_STRING | (m_keyboardVisible ? MF_CHECKED : 0),
                 ID_ONSCREEN_KB, L"On-screen keyboard");
+    
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, ID_EDIT_MACROS, L"Edit macros...");
 
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_HELP, L"Shortcuts and typing guide");
@@ -283,6 +287,7 @@ void TrayIcon::showMenu() {
         case ID_FIXED:         m_onCommand(Command::SetFixedLayout); break;
         case ID_LIVE_PREVIEW:  m_onCommand(Command::ToggleLivePreview); break;
         case ID_ONSCREEN_KB:   m_onCommand(Command::ToggleOnScreenKeyboard); break;
+        case ID_EDIT_MACROS:   m_onCommand(Command::EditMacros); break;
         case ID_HELP:          m_onCommand(Command::ShowHelp); break;
         case ID_EXIT:          m_onCommand(Command::Exit); break;
         default: break;

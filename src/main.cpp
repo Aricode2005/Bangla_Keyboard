@@ -2,6 +2,7 @@
 #include "core/FixedLayoutEngine.h"
 #include "core/WordDictionary.h"
 #include "core/UserDictionary.h"
+#include "core/MacroEngine.h"
 #include "core/NgramModel.h"
 #include "core/CandidateResolver.h"
 #include "core/SpecialCharPicker.h"
@@ -13,6 +14,7 @@
 #include "ui/CandidateWindow.h"
 #include "ui/OnScreenKeyboard.h"
 #include "ui/TrayIcon.h"
+#include "ui/MacroDialog.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -25,11 +27,14 @@ static KeyboardHook g_hook;
 static ConsoleHost g_console;
 static Settings g_settings;
 static UserDictionary g_userWords;
+static MacroEngine g_macros;
 static std::string g_userWordsPath;
+static std::string g_macrosPath;
 static std::string g_settingsPath;
 static TrayIcon g_tray;
 static CandidateWindow g_candidateWindow;
 static OnScreenKeyboard g_onScreenKeyboard;
+static MacroDialog g_macroDialog(&g_macros);
 
 /// Shortcut reference, shown from the tray menu.
 static void showHelp() {
@@ -66,6 +71,7 @@ static void persistSettings() {
     g_onScreenKeyboard.position(g_settings.onScreenKeyboardX, g_settings.onScreenKeyboardY);
     g_settings.save(g_settingsPath);
     g_userWords.save(g_userWordsPath);
+    g_macros.save(g_macrosPath);
 }
 
 /// Mirrors the current state onto the tray icon.
@@ -89,6 +95,10 @@ static void handleTrayCommand(TrayIcon::Command command) {
             g_onScreenKeyboard.toggle();
             syncTray();
             persistSettings();
+            break;
+
+        case TrayIcon::Command::EditMacros:
+            g_macroDialog.show(GetModuleHandleW(nullptr));
             break;
 
         case TrayIcon::Command::ShowHelp:
@@ -255,6 +265,10 @@ int main(int argc, char* argv[]) {
     g_userWords.load(g_userWordsPath);
     g_userWords.mergeInto(words);
     KeyboardHook::setUserDictionary(&g_userWords);
+
+    g_macrosPath = MacroEngine::defaultPath();
+    g_macros.load(g_macrosPath);
+    KeyboardHook::setMacroEngine(&g_macros);
 
     // Statistical fallback for words no dictionary contains. Trained after the user's own
     // words are merged in, so their spellings shape the model too.

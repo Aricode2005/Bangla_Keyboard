@@ -31,6 +31,7 @@ public:
         SetFixedLayout,
         ToggleLivePreview,
         ToggleOnScreenKeyboard,
+        EditMacros,
         ShowHelp,
         Exit
     };

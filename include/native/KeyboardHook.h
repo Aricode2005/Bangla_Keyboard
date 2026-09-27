@@ -8,6 +8,7 @@
 #include "core/SuggestionPolicy.h"
 #include "core/WordDictionary.h"
 #include "core/UserDictionary.h"
+#include "core/MacroEngine.h"
 #include "ui/CandidateWindow.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -90,6 +91,9 @@ public:
     /// Supplies the store that records words the user corrects the engine into.
     static void setUserDictionary(UserDictionary* dictionary) { s_userWords = dictionary; }
 
+    /// Supplies the engine that expands abbreviations.
+    static void setMacroEngine(MacroEngine* macros) { s_macros = macros; }
+
     /// Uninstalls the active hook.
     void uninstall();
 
@@ -138,6 +142,7 @@ private:
 
     /// Words learned from the user's own corrections. May be null.
     static UserDictionary* s_userWords;
+    static MacroEngine* s_macros;
     static bool s_learnOnCommit;
     static InputBuffer s_buffer;
     static SpecialCharPicker s_specialPicker;

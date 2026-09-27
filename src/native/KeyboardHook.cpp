@@ -101,6 +101,7 @@ std::string KeyboardHook::s_committedText;
 size_t KeyboardHook::s_committedUnits = 0;
 char KeyboardHook::s_committedDelimiter = 0;
 UserDictionary* KeyboardHook::s_userWords = nullptr;
+MacroEngine* KeyboardHook::s_macros = nullptr;
 bool KeyboardHook::s_learnOnCommit = false;
 
 namespace {
@@ -163,6 +164,8 @@ void KeyboardHook::uninstall() {
         }
         s_candidateWindow = nullptr;
         s_words = nullptr;
+        s_userWords = nullptr;
+        s_macros = nullptr;
         s_buffer.clear();
         s_previewUnits = 0;
         s_previewText.clear();
@@ -212,6 +215,13 @@ void KeyboardHook::refreshUi() {
     content.selectedIndex = s_engine->activeCandidateSelection();
     content.fixedMode = (state.getMode() == InputMode::BENGALI_FIXED);
     content.modeLabel = content.fixedMode ? "FIXED" : "PHONETIC";
+
+    if (s_macros && s_macros->hasMacro(content.roman)) {
+        content.composed = s_macros->expand(content.roman);
+        content.candidates = { content.composed };
+        content.selectedIndex = 0;
+        content.modeLabel = "MACRO";
+    }
 
     // Offer the longer rule tokens that still start with the last token typed, so that
     // "kh" and "kkh" are discoverable from "k" rather than having to be learnt from the
@@ -356,6 +366,11 @@ void KeyboardHook::refreshPreview() {
     }
 
     std::string composed = s_engine->getActiveComposedString();
+    
+    if (s_macros && s_macros->hasMacro(s_buffer.content())) {
+        composed = s_macros->expand(s_buffer.content());
+    }
+
     if (composed == s_previewText) {
         return; // Nothing changed on screen; do not churn the input stream.
     }
@@ -404,6 +419,11 @@ void KeyboardHook::commitBuffer() {
 std::string KeyboardHook::finalTextFor(const std::string& roman) {
     if (!s_engine) {
         return roman;
+    }
+
+    if (s_macros && s_macros->hasMacro(roman)) {
+        s_engine->clearActive();
+        return s_macros->expand(roman);
     }
 
     // A whole-word override wins over everything: it exists precisely for spellings the
