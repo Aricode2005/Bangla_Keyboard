@@ -17,6 +17,7 @@ CORE_SRCS = src/core/BanglaText.cpp \
             src/core/ExceptionDictionary.cpp \
             src/core/FixedLayoutEngine.cpp \
             src/core/InputBuffer.cpp \
+            src/core/MacroEngine.cpp \
             src/core/PhoneticEngine.cpp \
             src/core/SpecialCharPicker.cpp \
             src/core/SuggestionPolicy.cpp \
@@ -37,7 +38,8 @@ NATIVE_SRCS = src/native/ConsoleHost.cpp \
 UI_SRCS = src/ui/UiTheme.cpp \
           src/ui/CandidateWindow.cpp \
           src/ui/OnScreenKeyboard.cpp \
-          src/ui/TrayIcon.cpp
+          src/ui/TrayIcon.cpp \
+          src/ui/MacroDialog.cpp
 
 TEST_SRCS = tests/test_main.cpp $(CORE_SRCS)
 APP_SRCS  = src/main.cpp $(CORE_SRCS) $(NATIVE_SRCS) $(UI_SRCS)

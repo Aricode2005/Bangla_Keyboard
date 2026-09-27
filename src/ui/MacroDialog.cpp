@@ -46,7 +46,8 @@ void MacroDialog::show(HINSTANCE instance) {
 
     if (!m_hwnd) return;
 
-    HFONT font = UiTheme::createUiFont(16, 96, FW_NORMAL);
+    m_font = UiTheme::createUiFont(16, 96, FW_NORMAL);
+    HFONT font = m_font;
 
     CreateWindowExW(0, L"STATIC", L"Macros (Shortcut -> Expansion):", WS_CHILD | WS_VISIBLE,
                     10, 10, 200, 20, m_hwnd, nullptr, instance, nullptr);
@@ -69,8 +70,8 @@ void MacroDialog::show(HINSTANCE instance) {
                                       WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
                                       255, 240, 115, 20, m_hwnd, (HMENU)ID_EXPANSION_EDIT, instance, nullptr);
     
-    HFONT bengaliFont = UiTheme::createBengaliFont(16, 96, FW_NORMAL);
-    SendMessage(m_expansionEdit, WM_SETFONT, (WPARAM)bengaliFont, TRUE);
+    m_bengaliFont = UiTheme::createBengaliFont(16, 96, FW_NORMAL);
+    SendMessage(m_expansionEdit, WM_SETFONT, (WPARAM)m_bengaliFont, TRUE);
 
     m_addButton = CreateWindowExW(0, L"BUTTON", L"Add",
                                   WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -89,18 +90,27 @@ void MacroDialog::show(HINSTANCE instance) {
 
 void MacroDialog::refreshList() {
     SendMessageW(m_list, LB_RESETCONTENT, 0, 0);
+    m_rowShortcuts.clear();
     if (!m_engine) return;
 
+    // No LBS_SORT, so row i stays aligned with m_rowShortcuts[i]; the map is already ordered.
     for (const auto& [shortcut, expansion] : m_engine->getMacros()) {
         std::string display = shortcut + " -> " + expansion;
         int wlen = MultiByteToWideChar(CP_UTF8, 0, display.c_str(), -1, nullptr, 0);
         std::wstring wdisplay(wlen, 0);
         MultiByteToWideChar(CP_UTF8, 0, display.c_str(), -1, wdisplay.data(), wlen);
         SendMessageW(m_list, LB_ADDSTRING, 0, (LPARAM)wdisplay.c_str());
+        m_rowShortcuts.push_back(shortcut);
     }
 }
 
+void MacroDialog::notifyChanged() {
+    if (m_onChanged) m_onChanged();
+}
+
 void MacroDialog::onAdd() {
+    if (!m_engine) return;
+
     wchar_t wShortcut[256] = {0};
     wchar_t wExpansion[256] = {0};
     GetWindowTextW(m_shortcutEdit, wShortcut, 256);
@@ -114,32 +124,27 @@ void MacroDialog::onAdd() {
     int len2 = WideCharToMultiByte(CP_UTF8, 0, wExpansion, -1, nullptr, 0, nullptr, nullptr);
     if (len2 > 1) { expansion.resize(len2 - 1); WideCharToMultiByte(CP_UTF8, 0, wExpansion, -1, &expansion[0], len2, nullptr, nullptr); }
 
-    if (!shortcut.empty() && !expansion.empty()) {
-        m_engine->addMacro(shortcut, expansion);
+    if (m_engine->addMacro(shortcut, expansion)) {
         refreshList();
         SetWindowTextW(m_shortcutEdit, L"");
         SetWindowTextW(m_expansionEdit, L"");
+        notifyChanged();
+    } else {
+        MessageBoxW(m_hwnd,
+                    L"Enter a shortcut without spaces and a non-empty expansion.",
+                    L"Edit Macros - Shobdomala", MB_OK | MB_ICONINFORMATION);
     }
 }
 
 void MacroDialog::onDelete() {
+    if (!m_engine) return;
     LRESULT sel = SendMessageW(m_list, LB_GETCURSEL, 0, 0);
-    if (sel == LB_ERR) return;
+    if (sel == LB_ERR || static_cast<size_t>(sel) >= m_rowShortcuts.size()) return;
 
-    wchar_t text[512] = {0};
-    SendMessageW(m_list, LB_GETTEXT, sel, (LPARAM)text);
-    
-    std::wstring wtext(text);
-    size_t arrow = wtext.find(L" ->");
-    if (arrow != std::wstring::npos) {
-        std::wstring wShortcut = wtext.substr(0, arrow);
-        std::string shortcut;
-        int len = WideCharToMultiByte(CP_UTF8, 0, wShortcut.c_str(), -1, nullptr, 0, nullptr, nullptr);
-        if (len > 1) { shortcut.resize(len - 1); WideCharToMultiByte(CP_UTF8, 0, wShortcut.c_str(), -1, &shortcut[0], len, nullptr, nullptr); }
-        
-        m_engine->removeMacro(shortcut);
-        refreshList();
+    if (m_engine->removeMacro(m_rowShortcuts[static_cast<size_t>(sel)])) {
+        notifyChanged();
     }
+    refreshList();
 }
 
 LRESULT CALLBACK MacroDialog::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -163,6 +168,9 @@ LRESULT CALLBACK MacroDialog::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
             return 0;
         case WM_DESTROY:
             self->m_hwnd = nullptr;
+            // Controls are destroyed with the window; the fonts they used are ours to free.
+            if (self->m_font) { DeleteObject(self->m_font); self->m_font = nullptr; }
+            if (self->m_bengaliFont) { DeleteObject(self->m_bengaliFont); self->m_bengaliFont = nullptr; }
             return 0;
     }
     return DefWindowProcW(hwnd, msg, wParam, lParam);

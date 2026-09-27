@@ -269,6 +269,8 @@ int main(int argc, char* argv[]) {
     g_macrosPath = MacroEngine::defaultPath();
     g_macros.load(g_macrosPath);
     KeyboardHook::setMacroEngine(&g_macros);
+    // Save on every edit, so macros survive a crash or a forced shutdown, not only a clean exit.
+    g_macroDialog.setOnChanged([] { g_macros.save(g_macrosPath); });
 
     // Statistical fallback for words no dictionary contains. Trained after the user's own
     // words are merged in, so their spellings shape the model too.
