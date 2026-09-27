@@ -17,6 +17,7 @@
 #include "core/ExceptionDictionary.h"
 #include "core/FixedLayoutEngine.h"
 #include "core/InputBuffer.h"
+#include "core/MacroEngine.h"
 #include "core/SpecialCharPicker.h"
 #include "core/WordDictionary.h"
 #include "core/BanglaText.h"
@@ -25,6 +26,7 @@
 #include "core/UserDictionary.h"
 #include "core/SuggestionPolicy.h"
 
+#include <cstdio>
 #include <fstream>
 
 #ifdef _WIN32
@@ -1774,6 +1776,83 @@ static bool test_fixed_layout_engine_customization() {
     return true;
 }
 
+
+static bool writeFile(const std::string& path, const std::string& content) {
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out << content;
+    return out.good();
+}
+
+static bool test_macro_engine_rejects_untypable_macros() {
+    MacroEngine macros;
+    TEST_ASSERT(macros.addMacro("brb", "এখনই আসছি"));
+    TEST_ASSERT(macros.hasMacro("brb"));
+    TEST_ASSERT_EQ(macros.expand("brb"), std::string("এখনই আসছি"));
+    TEST_ASSERT_EQ(macros.expand("nope"), std::string(""));
+
+    // Surrounding whitespace is trimmed: the typing buffer never contains it.
+    TEST_ASSERT(macros.addMacro("  ty\t", "ধন্যবাদ"));
+    TEST_ASSERT(macros.hasMacro("ty"));
+    TEST_ASSERT(!macros.hasMacro("  ty\t"));
+
+    // Nothing the buffer could ever hold, and no expansion that would delete the word.
+    TEST_ASSERT(!macros.addMacro("", "x"));
+    TEST_ASSERT(!macros.addMacro("   ", "x"));
+    TEST_ASSERT(!macros.addMacro("two words", "x"));
+    TEST_ASSERT(!macros.addMacro("gm", ""));
+    TEST_ASSERT(!macros.hasMacro("gm"));
+    TEST_ASSERT_EQ(macros.getMacros().size(), 2);
+
+    // Case-sensitive, like the roman buffer it is matched against.
+    TEST_ASSERT(!macros.hasMacro("BRB"));
+
+    // Re-adding replaces rather than duplicating.
+    TEST_ASSERT(macros.addMacro("brb", "আসছি"));
+    TEST_ASSERT_EQ(macros.expand("brb"), std::string("আসছি"));
+    TEST_ASSERT_EQ(macros.getMacros().size(), 2);
+
+    TEST_ASSERT(macros.removeMacro("brb"));
+    TEST_ASSERT(!macros.removeMacro("brb"));
+    TEST_ASSERT(!macros.hasMacro("brb"));
+    return true;
+}
+
+static bool test_macro_engine_file_round_trip_and_bad_files() {
+    const std::string path = "test_macros_tmp.json";
+
+    MacroEngine original;
+    TEST_ASSERT(original.addMacro("brb", "এখনই আসছি"));
+    TEST_ASSERT(original.addMacro("addr", "কলকাতা ৭০০০০১"));
+    TEST_ASSERT(original.save(path));
+
+    MacroEngine reloaded;
+    TEST_ASSERT(reloaded.load(path));
+    TEST_ASSERT(reloaded.getMacros() == original.getMacros());
+
+    // A failed load must leave the current macros alone rather than wiping them.
+    TEST_ASSERT(writeFile(path, "{ not json"));
+    TEST_ASSERT(!reloaded.load(path));
+    TEST_ASSERT_EQ(reloaded.getMacros().size(), 2);
+
+    // A top-level array would otherwise become macros "0", "1", ... that fire on digits.
+    TEST_ASSERT(writeFile(path, "[\"a\", \"b\"]"));
+    TEST_ASSERT(!reloaded.load(path));
+    TEST_ASSERT(!reloaded.hasMacro("0"));
+    TEST_ASSERT_EQ(reloaded.getMacros().size(), 2);
+
+    // Invalid entries in a hand-edited file are skipped; valid ones still load.
+    TEST_ASSERT(writeFile(path,
+        "{\"ok\": \"ঠিক আছে\", \"\": \"x\", \"a b\": \"x\", \"empty\": \"\", \"num\": 5}"));
+    TEST_ASSERT(reloaded.load(path));
+    TEST_ASSERT_EQ(reloaded.getMacros().size(), 1);
+    TEST_ASSERT_EQ(reloaded.expand("ok"), std::string("ঠিক আছে"));
+
+    std::remove(path.c_str());
+    TEST_ASSERT(!reloaded.load(path)); // missing file: first run
+    TEST_ASSERT_EQ(reloaded.getMacros().size(), 1);
+    return true;
+}
+
 int main() {
 #ifdef _WIN32
     // Enable UTF-8 console output for Bengali characters
@@ -1846,6 +1925,8 @@ int main() {
     RUN_TEST(test_shipped_word_list_corrections);
     RUN_TEST(test_dictionary_candidate_resolver);
     RUN_TEST(test_fixed_layout_engine_customization);
+    RUN_TEST(test_macro_engine_rejects_untypable_macros);
+    RUN_TEST(test_macro_engine_file_round_trip_and_bad_files);
 
     std::cout << "\n----------------------------------------\n";
     std::cout << "Results: " << g_testsPassed << "/" << g_testsRun << " passed";

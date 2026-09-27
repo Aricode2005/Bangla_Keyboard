@@ -23,12 +23,19 @@ bool MacroEngine::load(const std::string& path) {
     try {
         json j;
         file >> j;
-        m_macros.clear();
+        // Only an object maps shortcuts to expansions. items() on an array would yield
+        // "0", "1", ... as keys, turning typed digits into macros.
+        if (!j.is_object()) {
+            std::cerr << "[MacroEngine] Ignoring macros file: top level is not an object" << std::endl;
+            return false;
+        }
+        MacroEngine loaded;
         for (auto& [key, value] : j.items()) {
             if (value.is_string()) {
-                m_macros[key] = value.get<std::string>();
+                loaded.addMacro(key, value.get<std::string>());
             }
         }
+        m_macros = std::move(loaded.m_macros);
         return true;
     } catch (const std::exception& e) {
         std::cerr << "[MacroEngine] Failed to parse macros: " << e.what() << std::endl;
@@ -46,10 +53,18 @@ bool MacroEngine::save(const std::string& path) const {
     return file.good();
 }
 
-void MacroEngine::addMacro(const std::string& shortcut, const std::string& expansion) {
-    if (!shortcut.empty()) {
-        m_macros[shortcut] = expansion;
+bool MacroEngine::addMacro(const std::string& shortcut, const std::string& expansion) {
+    const char* kSpace = " \t\r\n\f\v";
+    const size_t first = shortcut.find_first_not_of(kSpace);
+    if (first == std::string::npos || expansion.empty()) {
+        return false;
     }
+    const std::string trimmed = shortcut.substr(first, shortcut.find_last_not_of(kSpace) - first + 1);
+    if (trimmed.find_first_of(kSpace) != std::string::npos) {
+        return false;
+    }
+    m_macros[trimmed] = expansion;
+    return true;
 }
 
 bool MacroEngine::removeMacro(const std::string& shortcut) {

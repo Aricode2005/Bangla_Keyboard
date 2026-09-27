@@ -26,6 +26,7 @@ set(CORE_SOURCES
     src/core/ExceptionDictionary.cpp
     src/core/FixedLayoutEngine.cpp
     src/core/InputBuffer.cpp
+    src/core/MacroEngine.cpp
     src/core/PhoneticEngine.cpp
     src/core/SpecialCharPicker.cpp
     src/core/SuggestionPolicy.cpp
@@ -52,6 +53,7 @@ set(UI_SOURCES
     src/ui/CandidateWindow.cpp
     src/ui/OnScreenKeyboard.cpp
     src/ui/TrayIcon.cpp
+    src/ui/MacroDialog.cpp
 )
 
 # Main executable. The native layer is Win32-only, so it is only defined on Windows;
