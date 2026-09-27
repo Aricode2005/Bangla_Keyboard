@@ -2,6 +2,10 @@
 
 #include <algorithm>
 
+#ifndef WM_DPICHANGED
+#define WM_DPICHANGED 0x02E0
+#endif
+
 namespace {
 
 const wchar_t* kClassName = L"ShobdomalaOnScreenKeyboard";
