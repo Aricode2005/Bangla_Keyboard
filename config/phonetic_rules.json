@@ -28,6 +28,12 @@
       "অ"
     ]
   },
+  "ia": {
+    "class": "vowel",
+    "candidates": [
+      "ইয়া"
+    ]
+  },
   "i": {
     "class": "vowel",
     "candidates": [
@@ -53,6 +59,12 @@
     "candidates": [
       "ঈ",
       "ই"
+    ]
+  },
+  "ua": {
+    "class": "vowel",
+    "candidates": [
+      "উয়া"
     ]
   },
   "u": {
@@ -135,6 +147,12 @@
           "ঐ"
         ]
       }
+    ]
+  },
+  "oa": {
+    "class": "vowel",
+    "candidates": [
+      "ওয়া"
     ]
   },
   "o": {
