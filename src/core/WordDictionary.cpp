@@ -255,12 +255,24 @@ void WordDictionary::searchFuzzy(const Node* node,
 
     // One row of the Levenshtein matrix, for the word spelled by the path to this node.
     std::vector<int> row(columns);
-    row[0] = previousRow[0] + 1;
+    // Cost to insert 'letter'
+    bool isLetterVowel = (letter >= 0x09BE && letter <= 0x09CC) || letter == 0x09CD || letter == 0x09BC || (letter >= 0x0981 && letter <= 0x0983);
+    int letterCost = isLetterVowel ? 1 : 2;
+    row[0] = previousRow[0] + letterCost;
 
     for (size_t i = 1; i < columns; ++i) {
-        const int insertCost = row[i - 1] + 1;
-        const int deleteCost = previousRow[i] + 1;
-        const int replaceCost = previousRow[i - 1] + (target[i - 1] == letter ? 0 : 1);
+        char32_t t = target[i - 1];
+        bool isTargetVowel = (t >= 0x09BE && t <= 0x09CC) || t == 0x09CD || t == 0x09BC || (t >= 0x0981 && t <= 0x0983);
+        int targetCost = isTargetVowel ? 1 : 2;
+
+        const int insertCost = row[i - 1] + targetCost;
+        const int deleteCost = previousRow[i] + letterCost;
+        
+        int replaceCost = previousRow[i - 1];
+        if (t != letter) {
+            replaceCost += (isTargetVowel && isLetterVowel) ? 1 : 2;
+        }
+        
         row[i] = std::min({ insertCost, deleteCost, replaceCost });
     }
 
@@ -296,8 +308,11 @@ std::vector<WordSuggestion> WordDictionary::correct(const std::string& word,
     const std::vector<char32_t> target = toCodepoints(BanglaText::normalize(word));
 
     std::vector<int> firstRow(target.size() + 1);
-    for (size_t i = 0; i < firstRow.size(); ++i) {
-        firstRow[i] = static_cast<int>(i);
+    firstRow[0] = 0;
+    for (size_t i = 1; i < firstRow.size(); ++i) {
+        char32_t t = target[i - 1];
+        bool isTargetVowel = (t >= 0x09BE && t <= 0x09CC) || t == 0x09CD || t == 0x09BC || (t >= 0x0981 && t <= 0x0983);
+        firstRow[i] = firstRow[i - 1] + (isTargetVowel ? 1 : 2);
     }
 
     std::vector<char32_t> current;
