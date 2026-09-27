@@ -39,7 +39,7 @@ size_t readLevelInto(const json& root, const char* field,
 } // namespace
 
 bool FixedLayoutEngine::loadFromFile(const std::string& jsonFilePath) {
-    std::ifstream file(jsonFilePath);
+    std::ifstream file(jsonFilePath, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "[FixedLayoutEngine] Could not open layout file: " << jsonFilePath << std::endl;
         return false;

@@ -76,7 +76,7 @@ std::string WordDictionary::fromCodepoints(const std::vector<char32_t>& codepoin
 // ---------------------------------------------------------------------------
 
 bool WordDictionary::loadFromFile(const std::string& jsonFilePath) {
-    std::ifstream file(jsonFilePath);
+    std::ifstream file(jsonFilePath, std::ios::binary);
     if (!file.is_open()) {
         return false;
     }

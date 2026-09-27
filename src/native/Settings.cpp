@@ -53,7 +53,7 @@ std::string Settings::defaultPath() {
 }
 
 bool Settings::load(const std::string& path) {
-    std::ifstream file(path);
+    std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) {
         return false; // first run; defaults stand
     }

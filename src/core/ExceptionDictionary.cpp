@@ -10,7 +10,7 @@
 using json = nlohmann::json;
 
 bool ExceptionDictionary::loadFromFile(const std::string& jsonFilePath) {
-    std::ifstream file(jsonFilePath);
+    std::ifstream file(jsonFilePath, std::ios::binary);
     if (!file.is_open()) {
         // A missing exception file is not fatal: the engine simply has no overrides.
         return false;

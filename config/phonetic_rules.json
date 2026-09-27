@@ -3,6 +3,12 @@
   "_convention": "Lowercase o is the inherent vowel: 'kol' gives কল, 'rong' gives রং. Capital O is an explicit ও/ো: 'sOnar' gives সোনার. Capitals otherwise select the retroflex or alternate letter: T=ট D=ড N=ণ S=শ Sh=ষ R=ড় Rh=ঢ়.",
   "a": {
     "class": "vowel",
+    "context": [
+      {
+        "when": ["word_start"],
+        "candidates": ["আ"]
+      }
+    ],
     "candidates": [
       "আ",
       "অ",

@@ -115,7 +115,7 @@ const std::vector<std::string>& TokenRule::select(uint32_t context) const {
 // ---------------------------------------------------------------------------
 
 bool SymbolTable::loadFromFile(const std::string& jsonFilePath) {
-    std::ifstream file(jsonFilePath);
+    std::ifstream file(jsonFilePath, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "[SymbolTable] Error: Could not open rules file: " << jsonFilePath << std::endl;
         return false;
