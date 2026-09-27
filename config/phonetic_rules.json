@@ -158,12 +158,6 @@
   "o": {
     "_note": "অ is the inherent-vowel marker. The composer emits nothing for অ after a consonant but does clear the consonant state, so 'rong' gives রং and not রোং, while 'kolm' still gives কল্ম and not ক্লম. Type capital O (or cycle) for an explicit ো.",
     "class": "vowel",
-    "context": [
-      {
-        "when": ["word_end"],
-        "candidates": ["ও", "অ"]
-      }
-    ],
     "candidates": [
       "অ",
       "ও"
